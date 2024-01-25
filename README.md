@@ -26,7 +26,7 @@ The config file (`ChatBridge_discord.json`) needs some extra values, which are:
 ![send join as player](https://cdn.discordapp.com/attachments/1199645472655151174/1200003359013355531/join_as_player_example.png?ex=65c49937&is=65b22437&hm=efe846df547ee5f105a6643698cffb587a45eb7c01254f7bd930b9f713752630&)
 
 Example of a complete `ChatBridge_discord.json` configuration:
-```json
+```json5
 {
     "aes_key": "ThisIstheSecret",  // the common encrypt key
     "name": "MyClientName",  // the name of the client
