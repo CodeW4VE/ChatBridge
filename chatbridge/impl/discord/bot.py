@@ -4,14 +4,16 @@ from queue import Queue, Empty
 from typing import NamedTuple, Any, List
 
 import discord
-from discord import Message
+from discord import Message, Webhook
 from discord.ext import commands
 from discord.ext.commands import Context
+import aiohttp
 
 from chatbridge.common import logger
 from chatbridge.core.network.protocol import ChatPayload
 from chatbridge.impl.discord import stored
 from chatbridge.impl.discord.config import DiscordConfig
+from chatbridge.impl.discord.createDiscordAvatar import get_avatar_url
 from chatbridge.impl.discord.helps import CommandHelpMessageAll, CommandHelpMessage, StatsCommandHelpMessage
 from chatbridge.impl.tis import bot_util
 
@@ -72,7 +74,35 @@ class DiscordBot(commands.Bot):
 					# 			message += '   | [{} -> {}] {}'.format(translation.src, dest, translation.text)
 					# 	except:
 					# 		self.logger.error('Translate fail')
-					await channel_chat.send(self.format_message_text('[{}] {}'.format(sender, payload.formatted_str())))
+					mcName = payload.author
+
+					if mcName == "":
+						message_words = payload.message.split()
+						# if it's a join/leave message, have the option to send is as the bot itself or as the player
+						if stored.config.send_join_as_player and message_words[1] in ["joined", "left"]:
+							mcName = message_words[0]
+							payload.message = "*(" + message_words[1] + " " + sender + ")*"
+
+						else:
+							# server messages, send normally
+							await channel_chat.send(payload.formatted_str())
+							continue
+
+					if not mcName in stored.avatar_cache:
+						print('MC name "' + mcName + '" not saved, uploading new image')
+						stored.avatar_cache[mcName] = get_avatar_url(mcName, stored.config.imgbb_key)
+
+					customUsername = mcName + " [" + sender + "]"
+
+					async with aiohttp.ClientSession() as session:
+							webhook = Webhook.from_url(stored.config.webhook_url, session=session)
+							await webhook.send(
+								content=payload.message, 
+								username=customUsername,
+								avatar_url=stored.avatar_cache[mcName]
+							)
+
+					#await channel_chat.send(self.format_message_text('[{}] {}'.format(sender, payload.formatted_str())))
 				elif message_data.type == MessageDataType.EMBED:  # embed
 					assert isinstance(data, discord.Embed)
 					self.logger.debug('Sending embed')
@@ -90,7 +120,8 @@ class DiscordBot(commands.Bot):
 		await self.listeningMessage()
 
 	async def on_message(self, message: Message):
-		if message.author == self.user:
+		#ignores all bot messages
+		if message.author.bot:
 			return
 		if message.channel.id in self.config.channels_for_command or message.channel.id == self.config.channel_for_chat:
 			msg_debug = f'{message.channel}: {message.author}: {message.author.name}: {message.content}'

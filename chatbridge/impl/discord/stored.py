@@ -9,3 +9,5 @@ if TYPE_CHECKING:
 config: 'DiscordConfig'
 bot: 'DiscordBot'
 client: 'DiscordChatClient'
+
+avatar_cache = {} #MC name -> discord avatar url
