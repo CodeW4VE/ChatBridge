@@ -23,7 +23,15 @@ The config file (`ChatBridge_discord.json`) needs some extra values, which are:
 * **webhook_url:** Obtained in discord server settings -> Integrations -> Webhooks
 * **imgbb_key:** Obtained in [imgbb API](https://api.imgbb.com/) (needs an account, completely free without need of credit card). This is where the custom profile pictures get saved.
 * **send_join_as_player:** Boolean to choose if join/leave messages are sent by the bot itself (like in the image above) or by the player, which looks like this:
+
 ![send join as player](https://cdn.discordapp.com/attachments/1199645472655151174/1200003359013355531/join_as_player_example.png?ex=65c49937&is=65b22437&hm=efe846df547ee5f105a6643698cffb587a45eb7c01254f7bd930b9f713752630&)
+
+### JSON Example
+The first time the program is used with the command:
+```
+python ChatBridge.pyz discord_bot
+```
+will generate a `ChatBridge_discord.json` if it doesn't find it.
 
 Example of a complete `ChatBridge_discord.json` configuration:
 ```json5
