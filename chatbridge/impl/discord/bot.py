@@ -18,6 +18,45 @@ from chatbridge.impl.discord.helps import CommandHelpMessageAll, CommandHelpMess
 from chatbridge.impl.tis import bot_util
 
 
+# --- Emote bridge ---
+# Translates Discord custom emotes <-> Minecraft glyphs both ways, so a
+# :name: typed in Minecraft shows up as the real emote in Discord and a
+# <:name:id> from Discord shows up as the matching PUA glyph in Minecraft
+# (rendered by a server resource pack). The emote table is loaded at startup
+# from emote_map.json in the working directory; if it's missing the bridge is
+# a no-op. Format: { "name": {"id": "123", "char": "", "animated": false} }
+import re as _re_emote, json as _json_emote, os as _os_emote
+_emote_by_id = {}
+_emote_by_name = {}
+_emote_by_char = {}
+try:
+	_emote_path = _os_emote.path.join(_os_emote.getcwd(), 'emote_map.json')
+	_emote_raw = _json_emote.load(open(_emote_path, encoding='utf-8'))
+	for _en, _ev in _emote_raw.items():
+		_mention = '<{}:{}:{}>'.format('a' if _ev.get('animated') else '', _en, _ev['id'])
+		_emote_by_id[str(_ev['id'])] = _ev['char']
+		_emote_by_name[_en.lower()] = _mention
+		_emote_by_char[_ev['char']] = _mention
+except Exception:
+	pass
+_DISCORD_EMOTE_RE = _re_emote.compile(r'<a?:(\w+):(\d+)>')
+_SHORTCODE_RE = _re_emote.compile(r':([A-Za-z0-9_]+):')
+def _discord_emotes_to_mc(text):
+	try:
+		return _DISCORD_EMOTE_RE.sub(lambda m: _emote_by_id.get(m.group(2), m.group(0)), text)
+	except Exception:
+		return text
+def _mc_emotes_to_discord(text):
+	try:
+		text = _SHORTCODE_RE.sub(lambda m: _emote_by_name.get(m.group(1).lower(), m.group(0)), text)
+		if _emote_by_char:
+			text = ''.join(_emote_by_char.get(c, c) for c in text)
+		return text
+	except Exception:
+		return text
+# --- end emote bridge ---
+
+
 class MessageDataType(Enum):
 	CHAT = auto()
 	EMBED = auto()
@@ -97,7 +136,7 @@ class DiscordBot(commands.Bot):
 					async with aiohttp.ClientSession() as session:
 							webhook = Webhook.from_url(stored.config.webhook_url, session=session)
 							await webhook.send(
-								content=payload.message, 
+								content=_mc_emotes_to_discord(payload.message),
 								username=customUsername,
 								avatar_url=stored.avatar_cache[mcName]
 							)
@@ -135,7 +174,7 @@ class DiscordBot(commands.Bot):
 			# Chat
 			if message.channel.id == self.config.channel_for_chat:
 				self.logger.info('Chat: {}'.format(msg_debug))
-				stored.client.broadcast_chat(message.content, author=message.author.name)
+				stored.client.broadcast_chat(_discord_emotes_to_mc(message.content), author=message.author.name)
 
 	def add_message(self, data, channel_id, t):
 		self.messages.put(MessageData(data=data, channel=channel_id, type=t))

@@ -11,6 +11,13 @@ The bot uses webhooks to appear as imaginary characters created automatically fr
 
 Next to the MC name, the ChatBridge client where the message was sent from appears between `[]`.
 
+### Emote bridge (Discord custom emotes <-> Minecraft)
+Custom Discord emotes are translated both ways so they render on each side:
+* **Discord -> Minecraft:** a `<:name:id>` (or animated `<a:name:id>`) becomes the Private Use Area glyph that a server resource pack draws as the emote, so vanilla (no-mod) clients see the real image.
+* **Minecraft -> Discord:** a `:name:` shortcode (or the PUA glyph itself) becomes the matching `<:name:id>` mention, so it shows up as the actual emote in Discord.
+
+The emote table is loaded at startup from an `emote_map.json` placed in the bot's working directory. See `emote_map.example.json` for the format (`{ "name": {"id": "...", "char": "<PUA glyph>", "animated": false} }`). If the file is missing the bridge is simply a no-op. Generating the resource pack and the `emote_map.json` is handled server-side (see [WaveMotes-Server](https://github.com/CodeW4VE/WaveMotes-Server)).
+
 ## How to set up
 This ChatBridge modification only needs to be executed as the `discord_bot` instance.
 ### Additional python libraries

@@ -1,0 +1,5 @@
+{
+    "kekw": {"id": "100000000000000001", "char": "\uE000", "animated": false},
+    "pain": {"id": "100000000000000002", "char": "\uE001", "animated": false},
+    "catjam": {"id": "100000000000000003", "char": "\uE002", "animated": true}
+}
