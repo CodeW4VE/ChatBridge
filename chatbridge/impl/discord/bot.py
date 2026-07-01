@@ -158,6 +158,36 @@ class DiscordBot(commands.Bot):
 		self.logger.info(f'Logged in as {self.user}')
 		await self.listeningMessage()
 
+	async def _reply_context(self, message: Message) -> str:
+		# If this Discord message is a reply, build a short prefix so MC players
+		# can see who/what is being replied to: '↪ Author: «snippet…» '
+		ref = getattr(message, 'reference', None)
+		if ref is None:
+			return ''
+		orig = ref.resolved
+		if orig is None and getattr(ref, 'message_id', None) is not None:
+			try:
+				orig = await message.channel.fetch_message(ref.message_id)
+			except Exception:
+				return ''
+		if orig is None or isinstance(orig, discord.DeletedReferencedMessage):
+			return ''
+		try:
+			ref_author = orig.author.display_name
+		except Exception:
+			ref_author = getattr(getattr(orig, 'author', None), 'name', '?')
+		snippet = ' '.join(_discord_emotes_to_mc(orig.content or '').split())
+		if not snippet:
+			if getattr(orig, 'attachments', None):
+				snippet = '[file]'
+			elif getattr(orig, 'embeds', None):
+				snippet = '[embed]'
+			else:
+				snippet = '...'
+		if len(snippet) > 30:
+			snippet = snippet[:30].rstrip() + '…'
+		return '↪ {}: «{}» '.format(ref_author, snippet)
+
 	async def on_message(self, message: Message):
 		#ignores all bot messages
 		if message.author.bot:
@@ -174,7 +204,8 @@ class DiscordBot(commands.Bot):
 			# Chat
 			if message.channel.id == self.config.channel_for_chat:
 				self.logger.info('Chat: {}'.format(msg_debug))
-				stored.client.broadcast_chat(_discord_emotes_to_mc(message.content), author=message.author.name)
+				reply_prefix = await self._reply_context(message)
+				stored.client.broadcast_chat(reply_prefix + _discord_emotes_to_mc(message.content), author=message.author.name)
 
 	def add_message(self, data, channel_id, t):
 		self.messages.put(MessageData(data=data, channel=channel_id, type=t))
